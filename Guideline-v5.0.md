@@ -1121,8 +1121,6 @@ Route::post('/icnumber/verify-and-link', [LoginController::class, 'verifyAndLink
 
 **Figure 29: Add New Routes**
 
-</div>
-
 #### PHP 8 with CodeIgniter Framework
 
 > This configuration guide is specifically applicable to **PHP v8.1.25** and **CodeIgniter framework v4.2.1**. It is important to note that this guide may not be universally compatible with all PHP and CodeIgniter versions. Developers should verify that their environment, including libraries, programming language, and framework versions, aligns with these requirements to ensure successful implementation.
