@@ -54,11 +54,12 @@
     - [PHP 7 with Laravel Framework](#php-7-with-laravel-framework)
       - [Environment Configuration](#environment-configuration)
       - [Library Installation](#library-installation)
+      - [Publish Configuration File](#publish-configuration)
+      - [Define Scopes](#define-scopes)
       - [Add Keycloak Driver](#add-keycloak-driver)
-      - [Create redirectToKeycloak Function](#create-redirecttokeycloak-function)
-      - [Create handleKeycloakCallback Function](#create-handlekeycloakcallback-function)
-      - [Add IC Number Column in Model](#add-ic-number-column-in-model)
+      - [Add Column in Model](#column-model)
       - [Add New Routes](#add-new-routes)
+      - [Call Route Name](#call-route-name)
     - [PHP 8 with Laravel Framework](#php-8-with-laravel-framework)
       - [Environment Configuration](#environment-configuration-1)
       - [Library Installation](#library-installation-1)
@@ -114,13 +115,13 @@
 - [Figure 4: MyDigital ID SSO Protocol Sequence Diagram](#_bookmark17)
 - [Figure 5: Environment Configuration in PHP Laravel](#_bookmark36)
 - [Figure 6: Keycloak Guard Library Installation](#_bookmark38)
-- [Figure 7: Keycloak Driver](#_bookmark40)
-- [Figure 8: redirectToKeycloak Function](#_bookmark42)
-- [Figure 9: handleKeycloakCallback Function](#_bookmark44)
-- [Figure 10: Retrieve User Information](#_bookmark45)
-- [Figure 11: Finds IC Number and Stored in The Database](#_bookmark46)
-- [Figure 12: Add IC Number Column](#_bookmark48)
-- [Figure 13: Add New Routes](#_bookmark50)
+- [Figure 7: Publish keycloak-web.php File](#_bookmark39)
+- [Figure 8: OpenID Connect (OIDC) Scopes](#_bookmark40)
+- [Figure 9: Keycloak Guards Driver](#_bookmark41)
+- [Figure 10: Keycloak Providers Driver](#_bookmark1)
+- [Figure 11: Add ‘nama’ and ‘nric’ Column](#_bookmark2)
+- [Figure 12: Add New Routes](#_bookmark50)
+- [Figure 13: Call Route Name](#_bookmark51)
 - [Figure 14: Environment Configuration in PHP Laravel](#_bookmark53)
 - [Figure 15: Keycloak Guard Library Installation](#_bookmark55)
 - [Figure 16: Configure the Return Variable](#_bookmark57)
@@ -555,11 +556,43 @@ composer require robsontenorio/laravel-keycloak-guard
 
 </div>
 
+##### Publish Configuration File
+
+Publish the configuration file will create a `keycloak-web.php` file in config directory, which can edit to customize settings like routes and redirect URLs.
+
+<a id="_bookmark39"></a>
+
+```
+php artisan vendor:publish --provider="Vizir/KeycloakWebGuard/KeycloakWebGuardServiceProvider"
+```
+
+<div align="center">
+
+**Figure 7: Publish keycloak-web.php File**
+
+</div>
+
+##### Define Scopes
+
+In `keycloak-web.php` file, define scopes as ‘openid’.
+
+<a id="_bookmark40"></a>
+
+```
+'scopes' => ['openid'],
+```
+
+<div align="center">
+
+**Figure 8: OpenID Connect (OIDC) Scopes**
+
+</div>
+
 ##### Add Keycloak Driver
 
 Add the configuration for the Keycloak driver in the `auth.php` file to define Keycloak as an authentication provider for the application.
 
-<a id="_bookmark40"></a>
+<a id="_bookmark41"></a>
 
 ```
 'keycloak' => [
@@ -570,147 +603,102 @@ Add the configuration for the Keycloak driver in the `auth.php` file to define K
 
 <div align="center">
 
-**Figure 7: Keycloak Driver**
+**Figure 9: Keycloak Guards Driver**
 
 </div>
 
-##### Create redirectToKeycloak Function
-
-In the `LoginController.php` file, create the `redirectToKeycloak` function. This function redirects users to the Keycloak Authorization Endpoint to start the login process. It is a key step in integrating Keycloak with a PHP application using the OAuth2 or OpenID Connect protocols, ensuring secure and seamless user authentication.
-
-<a id="_bookmark42"></a>
+<a id="_bookmark1"></a>
 
 ```
-public function redirectToKeycloak()
-{
-    return redirect(env('KEYCLOAK_BASE_URL'). "/realms/" .env("KEYCLOAK_REALM") . "/protocol/
-    openid-connect/auth? . http_build_query([
-        'client_id      => env('KEYCLOAK_CLIENT_ID),
-        'redirect_uri'  => env('KEYCLOAK_REDIRECT_URI'),
-        'response_type  => 'code',
-        'scope'         => 'openid profile email',
-    ]));
-}
+'provider' => [
+    'users' => [
+      'driver' => 'keycloak-users',
+      'model' => App\Models\User::class,
+  ]
 ```
 
 <div align="center">
 
-**Figure 8: redirectToKeycloak Function**
+**Figure 10: Keycloak Providers Driver**
 
 </div>
 
-##### Create handleKeycloakCallback Function
+##### Add Column in Model
 
-In the `LoginController.php` file, create a `handleKeycloakCallback` function. This function processes the Keycloak callback by exchanging the authorization code for an access token, enabling secure user authentication and access to protected resources.
+If the application or website does not store the name and IC number in the database, the developer can add the ‘nama’ and ‘nric’ column to the protected fillable section in the `User.php` file. This approach ensures that the name and IC number is securely managed and can be updated within the user model while maintaining data integrity.
 
-<a id="_bookmark44"></a>
-
-```
-public function handleKeycloakCallback(Request $request)
-{
-    try {
-        $tokenResponse = Http::asForm()->post(env('KEYCLOAK_BASE_URL') . "/realms/" . env
-        ('KETCLOAK_REALM) . "/protocol/openid-connect/token", [
-            'client_id'    => env('KEYCLOAK_CLIENT_ID'),
-            'client_secret => env('KEYCLOAK_CLIENT_SECRET'),
-            'redirect_uri' => env('KEYCLOAK_REDIRECT_URI'),
-            'grant_type'   => 'authorization_code',
-            'code'         => $request->code,
-    ])->json();
-
-    if (!isset($tokenResponse['access_token'])) return redirect('/login')->withErrors('Login failed. ');
-    }
-}
-```
-
-<div align="center">
-
-**Figure 9: handleKeycloakCallback Function**
-
-</div>
-
-Retrieve the user information using the access token by querying the Keycloak User Info endpoint. Extract the IC number and name from the response to securely access and utilize these details within the application for user identification and processing.
-
-<a id="_bookmark45"></a>
+<a id="_bookmark2"></a>
 
 ```
-$userInfo = Http::withToken($tokenResponse['access_token'])->get(env('KEYCLOAK_BASE_URL') . "/
-realms/" . env('KEYCLOAK_REALM') . "/protocol/openid-connect/userinfo")->json();
-if (!$userInfo || !isset($userInfo['nric'])) return redirect('/login')->withErrors('User data missing.');
-```
-
-<div align="center">
-
-**Figure 10: Retrieve User Information**
-
-</div>
-
-Creates or updates the user in the database. Finds a user based on IC number and if the IC number is found, proceed to log the user in. If the IC number is not found or does not match, handle redirect to the login page with login error message.
-
-<a id="_bookmark46"></a>
-
-```
-      $user = \App\Models\User::updateOrCreate(['ic_number' => $userInfo['nric']], ['name' => $userInfo
-      ['nama']]);
-
-      Auth::login($user);
-      return redirect('/dashboard')->withErrors('Login error: ' . $e->getMessage());
-
-  } catch (\Exception $e) {
-      return redirect('/login')->withErrors('Login error: ' . $e->getMessage());
-  }
-}
-```
-
-<div align="center">
-
-**Figure 11: Finds IC Number and Stored in The Database**
-
-</div>
-
-##### Add IC Number Column in Model
-
-If the application or website does not store the IC number in the database, the developer can add the IC number column to the protected fillable section in the `User.php` file. This approach ensures that the IC number is securely managed and can be updated within the user model while maintaining data integrity.
-
-<a id="_bookmark48"></a>
-
-```
-  protected $fillable = [
+public $fillable = [
     'name',
-    'password',
-    'ic_number',
-  ];
+    'nric',
+]
 ```
 
 <div align="center">
 
-**Figure 12: Add IC Number Column**
+**Figure 11: Add ‘nama’ and ‘nric’ Column**
 
 </div>
 
 ##### Add New Routes
 
-Add the new routes for all the newly created functions in the `web.php` file to ensure proper routing for actions such as account login and callback.
+Add the new routes for integration with MyDigital ID SSO in the `web.php` file to ensure proper routing for actions such as account login, callback and logout. Protected main route within the keycloak-web middleware to ensure that only authenticated users can access it.
 
 <a id="_bookmark50"></a>
 
 ```
-Route::get('/', function () {
+use Illuminate\Support\Facades\Route;
+
+use Vizir\KeycloakWebGuard\Controllers\AuthController;
+
+Route::get('/', function(){
     return view('welcome');
+
 });
 
-Route::view('/dashboard', 'dashboard')->middleware('auth');
+Route::group(['middleware' => 'keycloak-web'], function(){
+    Route::get('/dashboard', function(){
+        return view('dashboard');
+    })->name('dashboard');
+});
 
-Route::get('/login', [KeycloakController::class, 'redirectToKeycloak'])->name('login');
-Route::get('/callback', [KeycloakController::class, 'handleKeycloakCallback'])->name('callback');
-Route::get('/logout', [KeycloakController::class, 'logout'])->name('logout');
+Route::get('/mydid-login', [AuthController::class, 'login'])->name('keycloak.login');
+
+Route::get('/mydid-callbacck', [AuthController::class, 'callback'])->name('keycloak.callback');
+
+Route::get('/mydid-logout', [AuthController::class, 'logout'])->name('keycloak.logout');
 ```
 
 <div align="center">
 
-**Figure 13: Add New Routes**
+**Figure 12: Add New Routes**
 
 </div>
+
+##### Call Route Name
+
+Call the route name that already defined in `web.php` to use in views.
+
+<a id="_bookmark51"></a>
+
+```
+<button onclick="window.location.href='{{ route('keycloak.logout) }}'" class="button-1"></button>
+
+@else
+<div class="card">
+
+    <h2>No user information available</h2>
+
+    <button onclick="window.location.href='{{ route('keycloak.login) }}'" class="button-1">Login</button>
+
+```
+
+<div align="center">
+
+**Figure 13: Call Route Name**
+
 
 #### PHP 8 with Laravel Framework
 
