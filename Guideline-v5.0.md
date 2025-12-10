@@ -241,7 +241,7 @@ SSO Integration uses Keycloak, an open-source Identity and Access Management (IA
 
 ![System Architecture Diagram](images/media/image3.jpeg)
 
-**Figure 1: System Architecture**
+***Figure 1: System Architecture***
 
 </div>
 
