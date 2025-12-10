@@ -699,6 +699,8 @@ Call the route name that already defined in `web.php` to use in views.
 
 **Figure 13: Call Route Name**
 
+</div>
+
 #### PHP 8 with Laravel Framework
 
 > This configuration guide is specifically applicable to **PHP v8.1.25** and **Laravel framework v10.48.12**. It is important to note that this guide may not be universally compatible with all PHP or Laravel versions. Developers should verify that their environment, including libraries, programming language, and framework versions, aligns with these requirements to ensure successful implementation.
